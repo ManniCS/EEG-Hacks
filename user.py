@@ -12,7 +12,9 @@ class Maze():
 		self.height = height
 		self.width = width
 		self.circle_width = circle_width
-		self.maze = np.zeros([height, width])
+		self.circle_padding = 2 #pixels of buffer to prevent collision
+		self.maze_walls = set()
+		self.collisions = 0
 		# self.action_icon_display_thread = False
 
 		#create the window
@@ -26,20 +28,13 @@ class Maze():
 		self.canvas = canvas
 
 		#create five very simple maze lines
-		canvas.create_line(0, height*1/6, width - 2*circle_width, height*1/6)
-		canvas.create_line(width, height*2/6, 2*circle_width, height*2/6)
-		canvas.create_line(0, height*3/6, width - 2*circle_width, height*3/6)
-		canvas.create_line(width, height*4/6, 2*circle_width, height*4/6)
-		canvas.create_line(0, height*5/6, width - 2*circle_width, height*5/6)
+		self.maze_walls.add(canvas.create_line(0, height*1/6, width - 2*circle_width, height*1/6))
+		self.maze_walls.add(canvas.create_line(width, height*2/6, 2*circle_width, height*2/6))
+		self.maze_walls.add(canvas.create_line(0, height*3/6, width - 2*circle_width, height*3/6))
+		self.maze_walls.add(canvas.create_line(width, height*4/6, 2*circle_width, height*4/6))
+		self.maze_walls.add(canvas.create_line(0, height*5/6, width - 2*circle_width, height*5/6))
 
-		#update maze representations
-		self.addWall(0, height*1/6,  width - 2*circle_width, height*1/6)
-		self.addWall(width, height*2/6, 2*circle_width, height*2/6)
-		self.addWall(0, height*3/6, width - 2*circle_width, height*3/6)
-		self.addWall(width, height*4/6, 2*circle_width, height*4/6)
-		self.addWall(0, height*5/6, width - 2*circle_width, height*5/6)
-
-		print(self.maze)
+		print(self.maze_walls)
 
 		#create a starting circle
 		print(height)
@@ -49,17 +44,21 @@ class Maze():
 
 		origin = ((width - circle_width) // 2, height - circle_width - 20)
 		c = canvas.create_oval(origin[0], origin[1],
-							   origin[0] + circle_width, origin[1] + circle_width,
-							   fill="red")
+							  origin[0] + circle_width, origin[1] + circle_width,
+							  fill="red")
 
 		# height, width // 2 - circle_width,  # // is explicit floor division in python
 		# 	 		  height, width // 2 + circle_width,           # canvas.create_oval requires integer values
 		# 		      height - 2 * circle_width, width // 2 - circle_width,
 		# 		      height - 2 * circle_width, width // 2 + circle_width)
-		self.c = c
+		self.circle = c
 
 	def process_move(self, x, y):
-		self.move_circle(x,y) #move circle
+		colliding_objs = set(canvas.find_overlapping(x, y, self.circle_width))
+		if len(colliding_objs & self.maze_walls) > 0:
+			self.collisions += 1
+		else:
+			self.move_circle(x,y) #move circle
 
 		# if (m.action_icon_display_thread): #process action icon animation
 		# 		m.action_icon_display_thead.join()
@@ -69,29 +68,32 @@ class Maze():
 
 		# self.update_action_icon(x, y)
 
-	def addWall(self, start_x, start_y, end_x, end_y):
-		#adds a wall to the internal representation of the maze
-		start_x, start_y, end_x, end_y = int(start_x), int(start_y), int(end_x), int(end_y) # convert to ints, if receive float values
-		
-		if start_x > end_x:
-			start_x, end_x = self.swap(start_x, end_x)
-		if end_y < start_y:
-			end_y, start_y = self.swap(end_y, start_y)
-
-		row_span = end_y - start_y
-		col_span = end_x - start_x
-		col_per_row = col_span if row_span == 0 else (col_span + 1 / row_span) #round up int div
-		curr_x = start_x
-
-		for i in range(start_y, end_y):
-			for j in range(0, col_per_row):
-				curr_x += 0 if curr_x > end_x else 1
-				self.maze[i][curr_x] = 1
-
 	def move_circle(self, x, y):
-		#move the circle by the specified amounts
-		if self.canvas.
-		self.canvas.move(self.c, x, y)
+		#moves circle recording collisions if they occur
+		a = self.canvas.coords(self.circle)
+
+		print(a)
+
+		left_x, bottom_y, right_x, top_y = a
+
+		left_x, right_x = self.add_constant([left_x, right_x], x)
+		top_y, bottom_y = self.add_constant([top_y, bottom_y], y) # add move
+
+		a = left_x, top_y, right_x, bottom_y
+
+		print(a)
+
+		colliding_objs = set(self.canvas.find_overlapping(left_x, top_y, right_x, bottom_y))
+
+		print(colliding_objs)
+
+		if len(colliding_objs & self.maze_walls) > 0:
+			print("hey!")
+			self.collisions += 1
+			for item in colliding_objs & self.maze_walls:
+				self.canvas.itemconfig(item, fill="red")
+		else:
+			self.canvas.move(self.circle, x,y) #move
 
 	def update_action_icon(self, x, y):
 		#function to be used by thread which updates the icon visualizing latest action
@@ -176,9 +178,10 @@ class Maze():
 		#remove from canvas
 		self.canvas.delete(arrow)
 
-	def swap(self, a, b):
-		#swaps the values of two numbers
-		return (b, a)
+	def add_constant(self, list, constant):
+		for i, item in enumerate(list):
+			list[i] = item + constant
+		return list
 
 	# class ActionIconDisplayThread(threading.Thread):
 	# 	def __init__(self, x, y, canvas):
@@ -285,13 +288,13 @@ if __name__ == '__main__':
 
 	while(s != "exit"):
 		if("r" in s):
-			m.process_move(20, 0)
+			m.move_circle(20, 0)
 		elif("l" in s):
-			m.process_move(-20,0)
+			m.move_circle(-20,0)
 		elif("u" in s):
-			m.process_move(0,-20)
+			m.move_circle(0,-20)
 		elif("d" in s):
-			m.process_move(0,20)
+			m.move_circle(0,20)
 		else:
 			pass
 
