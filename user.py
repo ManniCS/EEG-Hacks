@@ -70,25 +70,14 @@ class Maze():
 
 	def move_circle(self, x, y):
 		#moves circle recording collisions if they occur
-		a = self.canvas.coords(self.circle)
-
-		print(a)
-
-		left_x, bottom_y, right_x, top_y = a
+		left_x, bottom_y, right_x, top_y  = self.canvas.coords(self.circle)
 
 		left_x, right_x = self.add_constant([left_x, right_x], x)
 		top_y, bottom_y = self.add_constant([top_y, bottom_y], y) # add move
 
-		a = left_x, top_y, right_x, bottom_y
-
-		print(a)
-
 		colliding_objs = set(self.canvas.find_overlapping(left_x, top_y, right_x, bottom_y))
 
-		print(colliding_objs)
-
 		if len(colliding_objs & self.maze_walls) > 0:
-			print("hey!")
 			self.collisions += 1
 			for item in colliding_objs & self.maze_walls:
 				self.canvas.itemconfig(item, fill="red")
