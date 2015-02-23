@@ -1,0 +1,12 @@
+# # # # # # #
+# Possible: #
+# # # # # # # 
+- Have collision animation show up when hitting a wall (beyond irreversibly coloring a wall red, for a particular run). 
+- Maintain visible counter of number of collisions.
+- Maintain data on whether move was made that was counter intuitive to progessing towards final goal (could have gone right to progress towards final goal but went left, or down when could have gone up).
+- Build animation widget in top right corner of the screen to indicate last classified move
+
+# # # # # # # # 
+# Prioritized # 
+# # # # # # # #
+1) 
